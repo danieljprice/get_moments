@@ -47,7 +47,7 @@ subroutine dogleg ( n, r, lr, diag, qtb, delta, x )
 !    Input, real ( kind = rk ) R(LR), the upper triangular matrix R stored
 !    by rows.
 !
-!    Input, integer LR, the size of the R array, which must be 
+!    Input, integer LR, the size of the R array, which must be
 !    no less than (N*(N+1))/2.
 !
 !    Input, real ( kind = rk ) DIAG(N), the diagonal elements of the matrix D.
@@ -510,7 +510,7 @@ subroutine fsolve ( fcn, n, x, fvec, tol, info )
 !    fsolve() finds a zero of a system of N nonlinear functions in N variables
 !    by a modification of the Powell hybrid method.  This is done by using the
 !    more general nonlinear equation solver HYBRD.  The user provides a
-!    subroutine which calculates the functions.  
+!    subroutine which calculates the functions.
 !
 !    The jacobian is calculated by a forward-difference approximation.
 !
@@ -536,7 +536,7 @@ subroutine fsolve ( fcn, n, x, fvec, tol, info )
 !
 !  Input:
 !
-!    external FCN, the user subroutine which calculates the functions.  
+!    external FCN, the user subroutine which calculates the functions.
 !    The routine should have the form:
 !      subroutine fcn ( n, x, fvec )
 !      integer n
@@ -545,7 +545,7 @@ subroutine fsolve ( fcn, n, x, fvec, tol, info )
 !
 !    integer N, the number of functions and variables.
 !
-!    real ( kind = rk ) X(N), an initial estimate of the solution vector.  
+!    real ( kind = rk ) X(N), an initial estimate of the solution vector.
 !
 !    real ( kind = rk ) TOL.  Satisfactory termination occurs when the algorithm
 !    estimates that the relative error between X and the solution is at
@@ -638,7 +638,7 @@ subroutine hybrd ( fcn, n, x, fvec, xtol, maxfev, ml, mu, epsfcn, diag, mode, &
 !
 !    HYBRD finds a zero of a system of N nonlinear functions in N variables
 !    by a modification of the Powell hybrid method.  The user must provide a
-!    subroutine which calculates the functions.  
+!    subroutine which calculates the functions.
 !
 !    The jacobian is then calculated by a forward-difference approximation.
 !
@@ -710,7 +710,7 @@ subroutine hybrd ( fcn, n, x, fvec, xtol, maxfev, ml, mu, epsfcn, diag, mode, &
 !    nonzero, or else to FACTOR itself.  In most cases, FACTOR should lie
 !    in the interval (0.1, 100) with 100 the recommended value.
 !
-!    Output, integer INFO, error flag. 
+!    Output, integer INFO, error flag.
 !    0, improper input parameters.
 !    1, relative error between two consecutive iterates is at most XTOL.
 !    2, number of calls to FCN has reached or exceeded MAXFEV.
@@ -1162,7 +1162,7 @@ subroutine qform ( m, n, q, ldq )
 !    contains the factored form.
 !    On output, Q has been accumulated into a square matrix.
 !
-!    Input, integer LDQ, is a positive integer input variable 
+!    Input, integer LDQ, is a positive integer input variable
 !    not less than M which specifies the leading dimension of the array Q.
 !
   implicit none
@@ -1232,14 +1232,14 @@ subroutine qrfac ( m, n, a, lda, pivot, ipvt, lipvt, rdiag, acnorm )
 !    M by N matrix A.  That is, QRFAC determines an orthogonal
 !    matrix Q, a permutation matrix P, and an upper trapezoidal
 !    matrix R with diagonal elements of nonincreasing magnitude,
-!    such that A*P = Q*R.  
+!    such that A*P = Q*R.
 !
-!    The Householder transformation for column K, K = 1,2,...,min(M,N), 
+!    The Householder transformation for column K, K = 1,2,...,min(M,N),
 !    is of the form
 !
 !      I - ( 1 / U(K) ) * U * U'
 !
-!    where U has zeros in the first K-1 positions.  
+!    where U has zeros in the first K-1 positions.
 !
 !    The form of this transformation and the method of pivoting first
 !    appeared in the corresponding LINPACK routine.
@@ -1282,11 +1282,11 @@ subroutine qrfac ( m, n, a, lda, pivot, ipvt, lipvt, rdiag, acnorm )
 !
 !    Input, logical PIVOT, is TRUE if column pivoting is to be carried out.
 !
-!    Output, integer IPVT(LIPVT), defines the permutation matrix P 
-!    such that A*P = Q*R.  Column J of P is column IPVT(J) of the identity 
+!    Output, integer IPVT(LIPVT), defines the permutation matrix P
+!    such that A*P = Q*R.  Column J of P is column IPVT(J) of the identity
 !    matrix.  If PIVOT is false, IPVT is not referenced.
 !
-!    Input, integer LIPVT, the dimension of IPVT, which should 
+!    Input, integer LIPVT, the dimension of IPVT, which should
 !    be N if pivoting is used.
 !
 !    Output, real ( kind = rk ) RDIAG(N), contains the diagonal elements of R.
@@ -1579,7 +1579,7 @@ subroutine r1updt ( m, n, s, ls, u, v, w, sing )
 !
 !    Input, integer M, the number of rows of S.
 !
-!    Input, integer N, the number of columns of S.  
+!    Input, integer N, the number of columns of S.
 !    N must not exceed M.
 !
 !    Input/output, real ( kind = rk ) S(LS).  On input, the lower trapezoidal
@@ -1591,7 +1591,7 @@ subroutine r1updt ( m, n, s, ls, u, v, w, sing )
 !
 !    Input, real ( kind = rk ) U(M), the U vector.
 !
-!    Input/output, real ( kind = rk ) V(N).  On input, V must contain the 
+!    Input/output, real ( kind = rk ) V(N).  On input, V must contain the
 !    vector V.  On output V contains the information necessary to recover the
 !    Givens rotations GV described above.
 !
@@ -1765,4 +1765,3 @@ subroutine r1updt ( m, n, s, ls, u, v, w, sing )
 
   return
 end
- 
