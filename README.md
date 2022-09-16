@@ -1,4 +1,4 @@
-# get_momemts
+# get_moments
 Fortran 90 module for maximum entropy reconstruction of a function from its moments, essentially a pure Fortran version of PyMaxEnt
 
 # how to use
