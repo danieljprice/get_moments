@@ -5,6 +5,7 @@ module reconstruct_from_moments
 
  public :: reconstruct,reconstruct_maxent,fsolve_error,integrand
 
+ logical, private :: use_log_grid = .false.
  private
 
 contains
@@ -44,13 +45,14 @@ end subroutine reconstruct
 !
 ! maximum entropy reconstruction of function given moments
 !
-subroutine reconstruct_maxent(mu,x,f,lambsol,ierr,lambguess)
+subroutine reconstruct_maxent(mu,x,f,lambsol,ierr,lambguess,use_log)
  real, intent(in) :: mu(:)
  real, intent(in) :: x(:)
  real, intent(out) :: f(size(x))
  real, intent(out) :: lambsol(size(mu))
  integer, intent(out) :: ierr
  real, intent(in), optional :: lambguess(size(mu))
+ logical, intent(in), optional :: use_log
  integer :: n_moments
  real, parameter :: tol = 1.e-6
  real :: lsum(size(mu))
@@ -68,6 +70,8 @@ subroutine reconstruct_maxent(mu,x,f,lambsol,ierr,lambguess)
     ! use predefined guess
     lambsol(1) = -log(sqrt(2.*pi))
  endif
+ use_log_grid = .false.
+ if (present(use_log)) use_log_grid = use_log
 
  call fsolve(residual,n_moments,lambsol,lsum,tol,ierr)
  f = integrand(x,lambsol,n_moments)
@@ -88,17 +92,23 @@ contains
 !        rhs: the integrated right hand side of the moment approximation function
 !
 subroutine residual(n,lamb,l_sum)
- use integrate, only:integrate_trap
+ use integrate, only:integrate_trap,integrate_trap_log
  integer, intent(in) :: n
  real ( kind = rk ), intent(in)  :: lamb(n) ! guess for  solution
  real ( kind = rk ), intent(out) :: l_sum(n) ! function evaluated for given lamb
 
  integer :: k
 
- do k=1,n
-    !l_sum(k) = sum(integrand(x,lamb,k-1)) - mu(k)
-    l_sum(k) = integrate_trap(size(x),x,integrand(x,lamb,k-1)) - mu(k)
- enddo
+ if (use_log_grid) then
+    do k=1,n
+       l_sum(k) = integrate_trap_log(size(x),x,integrand(x,lamb,k-1)) - mu(k)
+    enddo
+ else
+    do k=1,n
+       l_sum(k) = integrate_trap(size(x),x,integrand(x,lamb,k-1)) - mu(k)
+    enddo
+ endif
+ !print*,' moments are: ',l_sum(:) + mu(:)
  !print*,' residuals are: ',l_sum(:)
 
 end subroutine residual
@@ -122,9 +132,17 @@ function integrand(x,lamb,k) result(y)
  integer :: i,j
 
  do i=1,size(x)
-    do j=1,size(lamb)
-       xi(j) = x(i)**(j-1)
-    enddo
+    if (use_log_grid) then
+       do j=1,size(lamb)
+          xi(j) = log(x(i))**(j-1)
+       enddo
+    else
+       do j=1,size(lamb)
+          xi(j) = x(i)**(j-1)
+       enddo
+    endif
+    ! function is exp( lam_0 + lam_1 x + lam_2 x^2 + ...)
+    ! or if log_grid is set exp( lam_0 + lam_1 log(x) + lam_2 log(x)^2 + ...)
     y(i) = x(i)**k * exp(dot_product(lamb,xi))
  enddo
 
