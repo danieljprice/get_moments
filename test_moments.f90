@@ -10,7 +10,7 @@ program test_moments
  real :: mu(4),mu0,mu1,mu2,mu3,lambsol(4),lambguess(4)
  logical :: log_grid
 
- xmin=0.001
+ xmin=0.1
  xmax=3.
  log_grid = .true.
  if (log_grid) then
@@ -50,7 +50,7 @@ program test_moments
  lambguess = [0.,-m,0.,0.]
  !print*,' using lambguess = ',lambguess
 
- call reconstruct_maxent(mu,x,f,lambsol,ierr,use_log=log_grid)
+ call reconstruct_maxent(mu,x,f,lambsol,ierr,use_log=log_grid,lambguess=lambguess)
  if (ierr /= 1) print*,' INFO: '//fsolve_error(ierr)
 
  !lambsol = lambguess
