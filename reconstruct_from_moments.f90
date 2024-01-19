@@ -255,22 +255,22 @@ subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess)
     if (n_moments > 1) lambsol(2) = 0.5
  endif
 
+ !print*,'INPUT  moments = ',mu,'guess = ',lambsol(1:2)
  call fsolve(residual_fit_gamma,n_moments,lambsol,lsum,tol,ierr)
-    !print*,'INPUT  moments = ',mu,'guess = ',lambguess(1:2)
-    !print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
-    !      'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
+
  if ((ierr /= 1 .or. any(abs(lsum(1:n_moments)) > 0.1)) .or. any(lambsol(1:n_moments) < 0)) then
-    !print*,'INPUT  moments = ',mu,'guess = ',lambguess(1:2)
    ! print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
    !        'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
 
+    ! try two parameter solve with a different initial guess
     lambsol(1) = 1.1
-    lambsol(2) = 2.
+    if (n_moments > 1) lambsol(2) = 2.
     call fsolve(residual_fit_gamma,n_moments,lambsol,lsum,tol,ierr)
     !print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
     !       'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
  
     if ((ierr /= 1 .or. any(abs(lsum(1:n_moments)) > 0.15)) .or. any(lambsol(1:n_moments) < 0)) then
+       ! revert to one parameter solve with p fixed to 1
        lambsol(1) = 1.5
        lambsol(2) = 1.0
        call fsolve(residual_fit_gamma,1,lambsol,lsum,tol,ierr)
@@ -302,8 +302,6 @@ subroutine residual_fit_gamma(n,lamb,l_sum)
     ! lsum is the error between the desired moments and the moments of the distribution
     l_sum(k) = gamma_func_moment(n,lamb,mu,k+1)/mu(k+2) - 1.
  enddo
- !print*,'d/p,p = ',lamb(1:2),' want moments = ',mu(3:4), ' got ',&
- !       (gamma_func_moment(n,lamb,mu,k),k=2,3),' err = ',l_sum(1:2)
 
 end subroutine residual_fit_gamma
 
@@ -334,9 +332,6 @@ real function gamma_func(params,x)
  p = params(4)      ! shape parameter
  d = d_on_p * p
 
- !prefac = beta * p / (theta * Gamma(d_on_p))
- !gamma_func = prefac * (x/theta)**(d-1) * exp(-(x/theta)**p)
-
  ! use expression below to avoid NaNs with large numbers
  expterm = exp(-(x/theta)**p)
  if (expterm < tiny(0.)) then
@@ -344,7 +339,6 @@ real function gamma_func(params,x)
  else
     gamma_func = beta * p / Gamma(d_on_p) * x**(d-1) * (theta**d * expterm)
  endif
- if (isnan(gamma_func)) print*,x,beta,Gamma(d_on_p),theta**d,x**(d-1),expterm
 
 end function gamma_func
 
