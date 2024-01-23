@@ -4,7 +4,7 @@ module reconstruct_from_moments
  integer, parameter :: rk = kind(0.d0)
 
  public :: reconstruct,reconstruct_maxent,fsolve_error,integrand
- public :: reconstruct_gamma_dist
+ public :: reconstruct_gamma_dist,gamma_func,gamma_func_from_moments,gamma_func_moment
 
  logical, private :: use_log_grid = .false.
  logical, private :: log_grid_is_uniform = .false.
@@ -193,7 +193,7 @@ function integrand(x,lamb,k,logx) result(y)
     !endif
 
     ! GENERALIZED GAMMA DISTRIBUTION (standard Gamma distribution if p=1)
-    y(i) = x(i)**(k/3.)*gamma_func(lamb,x(i))
+    y(i) = x(i)**(k/3.)*gamma_func(x(i),lamb)
 
  enddo
 
@@ -228,14 +228,16 @@ end function fsolve_error
 !
 ! maximum entropy reconstruction of function given moments
 !
-subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess)
+subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess,verbose)
  real, intent(in) :: mu(:)
  real, intent(out) :: lambsol(size(mu))
  real, intent(out) :: lsum(size(mu))
  integer, intent(out) :: ierr
  real, intent(in), optional :: lambguess(size(mu))
+ logical, intent(in), optional :: verbose
  integer :: n_moments,k
- real, parameter :: tol = 1.e-6
+ real, parameter :: tol = 1.e-2
+ logical :: debug
 
  lambsol = 0.
  ierr = 0
@@ -246,6 +248,8 @@ subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess)
     ierr = 1
     return
  endif
+ debug = .false.
+ if (present(verbose)) debug = verbose
 
  ! initial guesses for Lagrange multipliers
  if (present(lambguess)) then
@@ -255,24 +259,34 @@ subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess)
     if (n_moments > 1) lambsol(2) = 0.5
  endif
 
- !print*,'INPUT  moments = ',mu,'guess = ',lambsol(1:2)
+ if (debug) print*,'INPUT  moments = ',mu,'guess = ',lambsol(1:2)
  call fsolve(residual_fit_gamma,n_moments,lambsol,lsum,tol,ierr)
+ lambsol = abs(lambsol)
 
- if ((ierr /= 1 .or. any(abs(lsum(1:n_moments)) > 0.1)) .or. any(lambsol(1:n_moments) < 0)) then
-   ! print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
-   !        'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
+ if ((ierr /= 1 .or. any(abs(lsum(1:n_moments)) > 0.1))) then
+    if (debug) then
+       print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
+              'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
+    endif
 
     ! try two parameter solve with a different initial guess
     lambsol(1) = 1.1
     if (n_moments > 1) lambsol(2) = 2.
     call fsolve(residual_fit_gamma,n_moments,lambsol,lsum,tol,ierr)
-    !print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
-    !       'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
- 
-    if ((ierr /= 1 .or. any(abs(lsum(1:n_moments)) > 0.15)) .or. any(lambsol(1:n_moments) < 0)) then
-       ! revert to one parameter solve with p fixed to 1
+    lambsol = abs(lambsol)
+
+    if (debug) then
+       print*,'err=',ierr,'2 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
+           'd_on_p,p=',lambsol(1:2),'err=',lsum(1:2)
+    endif
+
+    !
+    ! if the error is > 15% or the parameters are negative, or d/p > 30, then
+    ! revert to a one parameter solve with p fixed to 1
+    !
+    if (any(abs(lsum(1:n_moments)) > 0.15)) then! .or. any(lambsol(1:n_moments) < 0) .or. lambsol(1)*lambsol(2) > 30.) then
        lambsol(1) = 1.5
-       lambsol(2) = 1.0
+       if (n_moments > 1) lambsol(2) = 1.0
        call fsolve(residual_fit_gamma,1,lambsol,lsum,tol,ierr)
   
        ! since we take the abs, must be able to get the same solution with d_on_p > 0
@@ -284,8 +298,10 @@ subroutine reconstruct_gamma_dist(mu,lambsol,lsum,ierr,lambguess)
        ierr = 5  ! report that we gave up on k_3
        lsum(2) = gamma_func_moment(n_moments,lambsol,mu,3)/mu(4) - 1.
 
-       !print*,'err=',ierr,'1 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
-       !       'd_on_p,p=',lambsol(1:2),'err=',(gamma_func_moment(n_moments,lambsol,mu,k+1)/mu(k+2) - 1.,k=1,2)
+       if (debug) then
+          print*,'err=',ierr,'1 parameter moments = ',(gamma_func_moment(n_moments,lambsol,mu,k),k=0,3),&
+              'd_on_p,p=',lambsol(1:2),'err=',(gamma_func_moment(n_moments,lambsol,mu,k+1)/mu(k+2) - 1.,k=1,2)
+       endif
     endif
  endif
 
@@ -317,9 +333,9 @@ end subroutine reconstruct_gamma_dist
 !
 ! see: https://en.wikipedia.org/wiki/Gamma_distribution
 !--------------------------------------------------------------------
-real function gamma_func(params,x)
- real, intent(in) :: params(4)
+real function gamma_func(x,params)
  real, intent(in) :: x
+ real, intent(in) :: params(4)
  real :: beta,theta,d_on_p,p,d,expterm
 
  beta = params(1)   ! overall normalisation factor
@@ -328,8 +344,8 @@ real function gamma_func(params,x)
     return
  endif
  theta = params(2)  ! scale parameter theta on wikipedia
- d_on_p = params(3)      ! shape parameter k on wikipedia
- p = params(4)      ! shape parameter
+ d_on_p = abs(params(3))     ! shape parameter k on wikipedia
+ p = abs(params(4))     ! shape parameter
  d = d_on_p * p
 
  ! use expression below to avoid NaNs with large numbers
@@ -337,10 +353,38 @@ real function gamma_func(params,x)
  if (expterm < tiny(0.)) then
     gamma_func = 0.
  else
-    gamma_func = beta * p / Gamma(d_on_p) * x**(d-1) * (theta**d * expterm)
+    !expterm = (theta)**(-d) * (expterm)
+    !if (expterm < tiny(0.)) then
+    !   gamma_func = 0.
+    !else
+    !   gamma_func = beta * p / Gamma(d_on_p) * x**(d-1) * (expterm)
+    !endif
+    !gamma_func = beta * p / theta / Gamma(d_on_p) * (x/theta)**(d-1) * (expterm)
+    gamma_func = beta * p / Gamma(d_on_p) * x**(d-1) * ((theta)**(-d) * (expterm))
  endif
+ !if (isnan(gamma_func)) print*,gamma_func,beta,p, Gamma(d_on_p), x**(d-1), ((theta)**(-d) * (expterm))
 
 end function gamma_func
+
+!----------------------------------------------------------------------
+! Evaluate the generalised gamma function but with the parameters 
+! given in terms of the first two moments k_0 and k_1 (mu(1) and mu(2)) 
+! and the fitted parameters d_on_p and p (params(1) and params(2))
+!----------------------------------------------------------------------
+real function gamma_func_from_moments(x,mu,params)
+ real, intent(in) :: x
+ real, intent(in) :: mu(2),params(2)
+ real :: beta,theta,d_on_p,p,all_params(4)
+
+ d_on_p = abs(params(1))
+ p = abs(params(2))
+ theta = (mu(2)/mu(1) * Gamma(d_on_p) / Gamma(d_on_p + 1./(3.*p)))**3
+ beta = mu(1)   ! overall normalisation factor
+
+ all_params = [beta,theta,d_on_p,p]
+ gamma_func_from_moments = gamma_func(x,all_params)
+
+end function gamma_func_from_moments
 
 !----------------------------------------------------
 ! analytic moments of generalised gamma distribution
