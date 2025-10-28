@@ -1,3 +1,38 @@
+module fsolve_mod
+ implicit none
+ integer, parameter :: rk = kind(0.d0)
+
+ public :: fsolve,fsolve_error
+ private
+
+contains
+
+!
+! print the error message corresponding to the error code
+!
+function fsolve_error(ierr) result(string)
+  integer, intent(in) :: ierr
+  character(len=62) :: string
+ 
+  select case(ierr)
+  case(0)
+      string = 'improper input parameters'
+  case(1)
+      string = 'relative error between X and solution is at most tol'
+  case(2)
+      string = 'number of calls to residual function exceeded 200*(N+1)'
+  case(3)
+      string = 'TOL is too small. No further improvement in solution possible'
+  case(4)
+      string = 'the iteration is not making good progress'
+  case(5)
+      string = 'gave up on k_3'
+  case default
+     string = ''
+  end select
+ 
+ end function fsolve_error
+
 subroutine dogleg ( n, r, lr, diag, qtb, delta, x )
 
 !*****************************************************************************80
@@ -71,7 +106,6 @@ subroutine dogleg ( n, r, lr, diag, qtb, delta, x )
   real ( kind = rk ) bnorm
   real ( kind = rk ) delta
   real ( kind = rk ) diag(n)
-  real ( kind = rk ) enorm
   real ( kind = rk ) epsmch
   real ( kind = rk ) gnorm
   integer i
@@ -749,7 +783,6 @@ subroutine hybrd ( fcn, n, x, fvec, xtol, maxfev, ml, mu, epsfcn, diag, mode, &
   real ( kind = rk ) actred
   real ( kind = rk ) delta
   real ( kind = rk ) diag(n)
-  real ( kind = rk ) enorm
   real ( kind = rk ) epsfcn
   real ( kind = rk ) epsmch
   real ( kind = rk ) factor
@@ -1307,7 +1340,6 @@ subroutine qrfac ( m, n, a, lda, pivot, ipvt, lipvt, rdiag, acnorm )
   real ( kind = rk ) a(lda,n)
   real ( kind = rk ) acnorm(n)
   real ( kind = rk ) ajnorm
-  real ( kind = rk ) enorm
   real ( kind = rk ) epsmch
   integer i4_temp
   integer ipvt(lipvt)
@@ -1765,3 +1797,5 @@ subroutine r1updt ( m, n, s, ls, u, v, w, sing )
 
   return
 end
+
+end module fsolve_mod

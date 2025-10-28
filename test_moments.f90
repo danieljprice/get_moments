@@ -1,13 +1,13 @@
 program test_moments
- use reconstruct_from_moments, only:reconstruct_maxent,&
-                                    integrand,fsolve_error
- use integrate,                only:integrate_trap,integrate_trap_log
+ use reconstruct_maxent, only:reconstruct_moments_maxent,integrand
+ use integrate,          only:integrate_trap,integrate_trap_log
+ use fsolve_mod,         only:fsolve_error
  implicit none
  integer, parameter :: nx = 1024
  integer :: i,k,ierr
  real :: xmin,xmax,dx,m,c
  real :: x(nx),f(nx),ftmp(nx)
- real :: mu(4),mu0,mu1,mu2,mu3,lambsol(4),lambguess(4)
+ real :: mu(4),mu0,mu1,mu2,mu3,lambsol(4),lambguess(4),lsum(4)
  logical :: log_grid
 
  xmin=0.1
@@ -50,7 +50,7 @@ program test_moments
  lambguess = [0.,-m,0.,0.]
  !print*,' using lambguess = ',lambguess
 
- call reconstruct_maxent(mu,x,f,lambsol,ierr,use_log=log_grid,lambguess=lambguess)
+ call reconstruct_moments_maxent(mu,x,f,lambsol,lsum,ierr,use_log=log_grid,lambguess=lambguess)
  if (ierr /= 1) print*,' INFO: '//fsolve_error(ierr)
 
  !lambsol = lambguess
@@ -79,14 +79,16 @@ program test_moments
 
 contains
 !
-!  internal function used for testing
+!  internal function used for testing the moment reconstruction
 !
 pure real function y(x)
  real, intent(in) :: x
+ real, parameter :: logxmean = log(10.**(0.2)),log_x_sigma = 0.1
 
  !return ((x+0.1)**(-m) + c)*x**k
- y = (x**(-m) + 0.*c)*x**k
+ !y = (x**(-m) + 0.*c)*x**k
  !y = (m*x**2 + c)*x**k
+ y = exp(-(log(x) - logxmean)**2/(2.*log_x_sigma**2))*x**k
  !y = exp(-0.5*(x-0.5)**2/(0.1**2))*x**k
 
 end function y
